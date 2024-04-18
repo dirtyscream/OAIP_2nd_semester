@@ -68,6 +68,12 @@
     "string_view": "c",
     "unordered_map": "c",
     "vector": "c",
-    "module.h": "c"
+    "module.h": "c",
+    "function.h": "c",
+    "locale": "c",
+    "__config": "c",
+    "iosfwd": "c",
+    "optional": "c",
+    "ostream": "cpp"
   }
 }
