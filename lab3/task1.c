@@ -10,8 +10,6 @@ typedef union Bits {
         unsigned int next_bit : 1;
     };
     unsigned int value;
-    void (*find_bits)(union Bits* object, int number);
-    void (*print_bits)(union Bits* object, int number);
 } Bits;
 
 void find_bits(Bits* object, int number) {

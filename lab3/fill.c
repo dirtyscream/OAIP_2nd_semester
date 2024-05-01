@@ -71,29 +71,26 @@ void fill_student_disciplines(student* personal_data, int student_count) {
     for (int i = 0; i < personal_data[student_count].number_of_discipline;
          i++) {
         personal_data[student_count].marks[i].discipline =
-            malloc(25 * sizeof(char));
+            malloc(50 * sizeof(char));
         if (personal_data[student_count].marks[i].discipline == NULL) {
             printf("Memory allocation error.\n");
             exit(EXIT_FAILURE);
         }
+        scanf("%*c");
         printf("Discipline %d: ", i + 1);
-        scanf("%s", personal_data[student_count].marks[i].discipline);
+        fgets(personal_data[student_count].marks[i].discipline, 50, stdin);
         int discipline_length =
             strlen(personal_data[student_count].marks[i].discipline);
         personal_data[student_count].marks[i].discipline =
             realloc(personal_data[student_count].marks[i].discipline,
                     (discipline_length + 1) * sizeof(char));
 
-        while (1) {
-            printf("Mark for %s: ",
-                   personal_data[student_count].marks[i].discipline);
-            scanf("%d", &personal_data[student_count].marks[i].mark);
-            if (personal_data[student_count].marks[i].mark < 0 ||
-                personal_data[student_count].marks[i].mark > 10) {
-                printf("Input not correct, try again\n");
-            } else {
-                break;
-            }
+        printf("Mark for %s: ",
+               personal_data[student_count].marks[i].discipline);
+        scanf("%d", &personal_data[student_count].marks[i].mark);
+        if (personal_data[student_count].marks[i].mark < 0 ||
+            personal_data[student_count].marks[i].mark > 10) {
+            printf("Input not correct, try again\n");
         }
     }
 }

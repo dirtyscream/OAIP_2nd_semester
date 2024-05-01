@@ -2,15 +2,12 @@
 #include <stdlib.h>
 
 typedef enum {
-    ENROLLED, 
-    EXPELLED,   
-    RESTORED,    
+    ENROLLED,
+    EXPELLED,
+    RESTORED,
 } current_state;
 
-typedef enum {
-    LISTED,
-    NO_LISTED
-} listed_or_not;
+typedef enum { LISTED, NO_LISTED } listed_or_not;
 
 typedef struct {
     int mark;

@@ -4,7 +4,7 @@
   "C_Cpp_Runner.debuggerPath": "lldb",
   "C_Cpp_Runner.cStandard": "",
   "C_Cpp_Runner.cppStandard": "",
-  "C_Cpp_Runner.msvcBatchPath": "",
+  "C_Cpp_Runner.msvcBatchPath": "C:/Program Files/Microsoft Visual Studio/VR_NR/Community/VC/Auxiliary/Build/vcvarsall.bat",
   "C_Cpp_Runner.useMsvc": false,
   "C_Cpp_Runner.warnings": [
     "-Wall",
@@ -55,29 +55,5 @@
   "C_Cpp_Runner.useLeakSanitizer": false,
   "C_Cpp_Runner.showCompilationTime": false,
   "C_Cpp_Runner.useLinkTimeOptimization": false,
-  "C_Cpp_Runner.msvcSecureNoWarnings": false,
-  "files.associations": {
-    "cstring": "c",
-    "ios": "c",
-    "__hash_table": "c",
-    "__split_buffer": "c",
-    "array": "c",
-    "bitset": "c",
-    "initializer_list": "c",
-    "string": "c",
-    "string_view": "c",
-    "unordered_map": "c",
-    "vector": "c",
-    "module.h": "c",
-    "function.h": "c",
-    "locale": "c",
-    "__config": "c",
-    "iosfwd": "c",
-    "optional": "c",
-    "ostream": "cpp",
-    "deque": "c",
-    "stack": "c",
-    "string.h": "c",
-    "filesystem": "c"
-  }
+  "C_Cpp_Runner.msvcSecureNoWarnings": false
 }

@@ -1,6 +1,10 @@
-5
-Mr Double Bobble 1388 3 Physic - 1 Math - 1 Chemistry - 5 2 01.09.2023 0 02.10.2024 1 1
-Mr Green Grice 1387 2 Physic - 1 Math - 2 2 01.09.2023 0 02.10.2024 1 1
-Mrs Kate Pretty 123 2 maths - 2 history - 7 3 12.12.2001 0 12.12.2004 1 12.12.2005 2 0
+6
+Bob Double Bobble 1388 3 Physic - 1 Math - 1 Chemistry - 5 2 01.09.2023 0 02.10.2024 1 1
+Miss Kate Pretty 123 2 maths - 2 history - 7 3 12.12.2001 0 12.12.2004 1 12.12.2005 2 0
 Bob Boban Propan 1232 3 maths - 9 ailoc - 9 phisics - 7 1 12.12.2005 0 0
-Mrs Kate Pretty 1234 2 maths - 1 history - 4 1 12.12.2001 0 0
+dsfg sdfg dsfgd 123545745 2 math - 7 history - 6 2 01.01.2020 0 03.03.2020 1 1
+asg sdfg sdfg 4 2 history - 0 belarus - 5 1 01.01.2020 0 0
+safdg dsfg sdfg 56 3 historu belarus
+ - 7 introduction algorithms 
+ - 8 math
+ - 9 1 01.01.2020 0 0
