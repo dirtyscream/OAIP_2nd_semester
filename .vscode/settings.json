@@ -78,6 +78,16 @@
     "deque": "c",
     "stack": "c",
     "string.h": "c",
-    "filesystem": "c"
+    "filesystem": "c",
+    "struct.h": "c",
+    "__bit_reference": "c",
+    "__node_handle": "c",
+    "__memory": "c",
+    "limits": "c",
+    "ratio": "c",
+    "system_error": "c",
+    "tuple": "c",
+    "type_traits": "c",
+    "chrono": "c"
   }
 }

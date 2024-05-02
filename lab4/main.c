@@ -4,24 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct Student {
-    char *name;
-    int number;
-    Stack *stack;
-} Student;
-
-typedef struct Node {
-    int data;
-    Student *student;
-    struct Node *next;
-} Node;
-
-typedef struct Stack {
-    Node *top;
-    void (*push)(struct Stack *, int);
-    int (*pop)(struct Stack *);
-    int (*is_empty)(struct Stack *);
-} Stack;
+#include "models.h"
 
 void push(Stack *stack, int data) {
     Node *newNode = (Node *)malloc(sizeof(Node));
@@ -61,28 +44,24 @@ Stack *stack_init() {
     return stack;
 }
 
-typedef struct List {
-    Node *head;
-    void (*append)(struct List *self, int data);
-    void (*print_list)(struct List *self);
-} List;
-
-Node *add_node(int data) {
+Node *add_node(Student *student) {
     Node *temp = (Node *)malloc(sizeof(Node));
-    temp->data = data;
+    temp->student = student;
     temp->next = NULL;
     return temp;
 }
 
-void append(struct List *self, int data) {
-    Node *new_node = add_node(data);
+void append(struct List *self, Student *student) {
+    Node *new_node = add_node(student);
     Node *last = self->head;
     if (self->head == NULL) {
         self->head = new_node;
         new_node->next = self->head;
         return;
     }
-    while (last->next != self->head) last = last->next;
+    while (last->next != self->head) {
+        last = last->next;
+    }
     last->next = new_node;
     new_node->next = self->head;
 }
@@ -93,9 +72,9 @@ void print_list(struct List *self) {
         do {
             Student *student = temp->student;
             printf("Name: %s, Number: %d\n", student->name, student->number);
-            if (student->stack != NULL) {
+            if (student->marks != NULL) {
                 printf("Marks in stack for %s: ", student->name);
-                Node *stack_node = student->stack->top;
+                Node *stack_node = student->marks->top;
                 while (stack_node != NULL) {
                     printf("%d ", stack_node->data);
                     stack_node = stack_node->next;
@@ -116,16 +95,113 @@ List *list_init() {
     return clist;
 }
 
+void add_info(List *list) {
+    char name[50];
+    printf("Enter the name of the student: ");
+    fgets(name, 50, stdin);
+    size_t length = strlen(name);
+    if (name[length - 1] == '\n') {
+        name[length - 1] = '\0';
+    }
+    int number;
+    printf("Enter the group of the student: ");
+    scanf("%d", &number);
+    Stack *marks = stack_init();
+    int mark = 1;
+    while (1) {
+        printf("Enter mark from (1 to 10) or 0 to exit: ");
+        scanf("%d", &mark);
+        if (mark == 0) {
+            break;
+        }
+        marks->push(marks, mark);
+    }
+    Student *student = (Student *)malloc(sizeof(Student));
+    student->name = (char *)malloc(strlen(name) + 1);
+    strcpy(student->name, name);
+    student->number = number;
+    student->marks = marks;
+    list->append(list, student);
+}
+
+Node *FindNext(Node *stack, Node *next) {
+    Node *p = stack;
+    if (!next) {
+        while (p->next) {
+            p = p->next;
+        }
+        return p;
+    }
+    for (; p->next != next; p = p->next)
+        ;
+    return p;
+}
+void sort_by_number(List *list) {
+    Node *root = list->head;
+    Node *p, *key;
+    Node *result = root;
+    root = root->next;
+    result->next = NULL;
+
+    while (root->next != NULL) {
+        if (root->next == root) {
+            break;
+        }
+        key = root;
+        root = root->next;
+        if (key->student->number < result->student->number) {
+            key->next = result;
+            result = key;
+        } else {
+            p = result;
+            while (p->next != NULL) {
+                if (p->next->student->number > key->student->number) break;
+                p = p->next;
+            }
+            key->next = p->next;
+            p->next = key;
+        }
+    }
+    root = result;
+    list->head = root;
+}
+
+void sort_name(List *list) {
+    Node *node = list->head;
+    sort_by_number(list);
+    if (list->head != NULL) {
+        do {
+            Node *next_node = node->next;
+            if (next_node == list->head) {
+                break;
+            }
+            if (node->student->number != next_node->student->number) {
+                continue;
+            }
+            while (next_node != list->head) {
+                if (strcmp(next_node->student->name, node->student->name) < 0) {
+                    Student *temp_student = node->student;
+                    node->student = next_node->student;
+                    next_node->student = temp_student;
+                }
+                next_node = next_node->next;
+            }
+            node = node->next;
+        } while (node != list->head);
+    }
+}
+
 void task2(char *db_name) {
     List *list = list_init();
     int choice;
     while (1) {
         printf(
-            "Select the task: \n1) Show info\n2) Add info\n3)Sort by Name\n4) "
-            "Sort by group number\n5) Delete students(lower than 3)\n6) Search "
-            "by name\n7) Search by group number\n8) Modify info.\n9) Save to "
-            "database\n 10) Load data from database\n11) Exit program\n");
+            "Select the task: \n1) Show info\n2) Add info\n3) Sort\n"
+            "4) Delete students(lower than 3)\n5) Search "
+            "by name\n6) Search by group number\n7) Modify info.\n8) Save to "
+            "database\n9) Load data from database\n10) Exit program\n");
         scanf("%d", &choice);
+        scanf("%*c");
 
         if (choice < 0 || choice > 11) {
             printf("Input not correct, try again\n");
@@ -136,9 +212,10 @@ void task2(char *db_name) {
                     break;
                 }
                 case 2:
-
+                    add_info(list);
+                    break;
                 case 3:
-
+                    sort_name(list);
                     break;
 
                 case 4:
@@ -170,7 +247,6 @@ void task2(char *db_name) {
             }
         }
     }
-    return 0;
 }
 
 int get_choice() {
