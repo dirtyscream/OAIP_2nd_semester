@@ -124,51 +124,34 @@ void add_info(List *list) {
     list->append(list, student);
 }
 
-Node *FindNext(Node *stack, Node *next) {
-    Node *p = stack;
-    if (!next) {
-        while (p->next) {
-            p = p->next;
-        }
-        return p;
-    }
-    for (; p->next != next; p = p->next)
-        ;
-    return p;
-}
 void sort_by_number(List *list) {
-    Node *root = list->head;
-    Node *p, *key;
-    Node *result = root;
-    root = root->next;
-    result->next = NULL;
-
-    while (root->next != NULL) {
-        if (root->next == root) {
-            break;
-        }
-        key = root;
-        root = root->next;
-        if (key->student->number < result->student->number) {
-            key->next = result;
-            result = key;
-        } else {
-            p = result;
-            while (p->next != NULL) {
-                if (p->next->student->number > key->student->number) break;
-                p = p->next;
+    if (list->head == NULL || list->head->next == NULL) return;
+    int swapped;
+    Node *current;
+    Node *last = NULL;
+    do {
+        swapped = 0;
+        current = list->head;
+        do {
+            if (current->next == last || current->next == list->head) {
+                last = current;
+                break;
             }
-            key->next = p->next;
-            p->next = key;
-        }
-    }
-    root = result;
-    list->head = root;
+            if (current->student->number > current->next->student->number) {
+                Student *tempData = current->student;
+                current->student = current->next->student;
+                current->next->student = tempData;
+                swapped = 1;
+            }
+            current = current->next;
+        } while (current != last);
+    } while (swapped);
 }
 
 void sort_name(List *list) {
     Node *node = list->head;
     sort_by_number(list);
+    printf("Sorted by number...\n");
     if (list->head != NULL) {
         do {
             Node *next_node = node->next;
@@ -176,6 +159,7 @@ void sort_name(List *list) {
                 break;
             }
             if (node->student->number != next_node->student->number) {
+                node = next_node;
                 continue;
             }
             while (next_node != list->head) {
@@ -191,14 +175,106 @@ void sort_name(List *list) {
     }
 }
 
+sqlite3 *open_db(const char *dbname) {
+    sqlite3 *db;
+    int rc = sqlite3_open(dbname, &db);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "Error while opening database: %s\n",
+                sqlite3_errmsg(db));
+        sqlite3_close(db);
+        return NULL;
+    }
+    printf("Connected to database succesfully\n");
+    return db;
+}
+
+void create_tables(sqlite3 *db) {
+    char *sql_students =
+        "CREATE TABLE IF NOT EXISTS students (\
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,\
+                            name TEXT,\
+                            number INTEGER\
+                          )";
+
+    char *sql_marks =
+        "CREATE TABLE IF NOT EXISTS marks (\
+                         id INTEGER PRIMARY KEY AUTOINCREMENT,\
+                         student_id INTEGER,\
+                         mark INTEGER,\
+                         FOREIGN KEY (student_id) REFERENCES students(id)\
+                       )";
+    if (sqlite3_exec(db, sql_students, NULL, NULL, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Error creating students table: %s\n",
+                sqlite3_errmsg(db));
+        return;
+    }
+
+    if (sqlite3_exec(db, sql_marks, NULL, NULL, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Error creating marks table: %s\n", sqlite3_errmsg(db));
+        return;
+    }
+    printf("Tables created successfully.\n");
+}
+
+int callback(void *data, int argc, char **argv, char **col_name) {
+    List *list = (List *)data;
+    static Student *previous_student = NULL;
+    if (previous_student != NULL &&
+        strcmp(previous_student->name, argv[1]) == 0) {
+        for (int i = 0; i < argc; i++) {
+            if (strcmp(col_name[i], "mark") == 0) {
+                previous_student->marks->push(previous_student->marks,
+                                              atoi(argv[i]));
+                return 0;
+            }
+        }
+    } else {
+        Student *student = (Student *)malloc(sizeof(Student));
+        student->marks = stack_init();
+
+        for (int i = 0; i < argc; i++) {
+            if (strcmp(col_name[i], "name") == 0) {
+                student->name = strdup(argv[i]);
+            } else if (strcmp(col_name[i], "number") == 0) {
+                student->number = atoi(argv[i]);
+            } else if (strcmp(col_name[i], "mark") == 0) {
+                student->marks->push(student->marks, atoi(argv[i]));
+            }
+        }
+
+        list->append(list, student);
+        previous_student = student;
+    }
+
+    return 0;
+}
+
+void get_data(sqlite3 *db, List *list) {
+    char *err_msg = 0;
+    char *sql = sqlite3_mprintf(
+        "SELECT students.id, students.name, students.number, marks.mark "
+        "FROM students LEFT JOIN marks ON students.id = marks.student_id");
+    int rc = sqlite3_exec(db, sql, callback, list, &err_msg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "Error while inserting into database: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        sqlite3_close(db);
+        exit(-1);
+    }
+    sqlite3_free(sql);
+}
+
 void task2(char *db_name) {
     List *list = list_init();
+    sqlite3 *db = open_db(db_name);
+    create_tables(db);
     int choice;
     while (1) {
         printf(
             "Select the task: \n1) Show info\n2) Add info\n3) Sort\n"
             "4) Delete students(lower than 3)\n5) Search "
-            "by name\n6) Search by group number\n7) Modify info.\n8) Save to "
+            "by name\n6) Search by group number\n7) Modify info.\n8) Save "
+            "to "
             "database\n9) Load data from database\n10) Exit program\n");
         scanf("%d", &choice);
         scanf("%*c");
@@ -219,7 +295,6 @@ void task2(char *db_name) {
                     break;
 
                 case 4:
-
                     break;
 
                 case 5:
@@ -235,10 +310,10 @@ void task2(char *db_name) {
 
                     break;
                 case 9:
-
+                    get_data(db, list);
                     break;
                 case 10:
-
+                    exit(0);
                     break;
                 case 11:
                     exit(0);
