@@ -151,7 +151,6 @@ void sort_by_number(List *list) {
 void sort_name(List *list) {
     Node *node = list->head;
     sort_by_number(list);
-    printf("Sorted by number...\n");
     if (list->head != NULL) {
         do {
             Node *next_node = node->next;
@@ -264,6 +263,44 @@ void get_data(sqlite3 *db, List *list) {
     sqlite3_free(sql);
 }
 
+void delete_student(List *list) {
+    if (list->head != NULL) {
+        Node *node = list->head;
+        Node *temp = node;
+        do {
+            if (temp->next == list->head) {
+                break;
+            }
+            temp = temp->next;
+        } while (temp != list->head);
+
+        do {
+            Stack *marks = node->student->marks;
+            float average = 0;
+            int count = 0;
+            Node *stack_node = marks->top;
+            while (stack_node != NULL) {
+                average += stack_node->data;
+                stack_node = stack_node->next;
+                count++;
+            }
+            average = average / count;
+            if (average <= 3) {
+                free(node->student);
+                if (temp == list->head) {
+                    list->head = node->next;
+                }
+                temp->next = node->next;
+                free(node);
+                node = temp->next;
+                continue;
+            }
+            temp = temp->next;
+            node = node->next;
+        } while (node != list->head);
+    }
+}
+
 void task2(char *db_name) {
     List *list = list_init();
     sqlite3 *db = open_db(db_name);
@@ -295,8 +332,8 @@ void task2(char *db_name) {
                     break;
 
                 case 4:
+                    delete_student(list);
                     break;
-
                 case 5:
 
                     break;
