@@ -88,6 +88,14 @@
     "system_error": "c",
     "tuple": "c",
     "type_traits": "c",
-    "chrono": "c"
-  }
+    "chrono": "c",
+    "models.h": "c",
+    "stack.h": "c",
+    "task2.h": "c",
+    "stdlib.h": "c",
+    "task1.h": "c",
+    "func2.h": "c"
+  },
+  "C_Cpp.errorSquiggles": "enabled",
+  "editor.fontSize": 14
 }

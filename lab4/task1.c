@@ -1,207 +1,192 @@
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+// Define structures and function pointers
 typedef struct Node {
-    int data;
-    struct Node* next;
+    double data;
+    struct Node *next;
 } Node;
 
 typedef struct Stack {
-    Node* top;
-    void (*push)(struct Stack*, int);
-    int (*pop)(struct Stack*);
-    int (*is_empty)(struct Stack*);
+    Node *top;
 } Stack;
 
-void push(Stack* stack, int data) {
-    Node* newNode = (Node*)malloc(sizeof(Node));
-    if (newNode == NULL) {
-        printf("Memory allocation error\n");
-        return;
-    }
-    newNode->data = data;
-    newNode->next = stack->top;
-    stack->top = newNode;
-}
+typedef void (*PushFunc)(Stack *, double);
+typedef double (*PopFunc)(Stack *);
+typedef bool (*IsEmptyFunc)(Stack *);
 
-int pop(Stack* stack) {
-    if (stack->is_empty(stack)) {
-        printf("Error: stack is empty\n");
-        return -1;
-    }
-    int data = stack->top->data;
-    Node* temp = stack->top;
-    stack->top = stack->top->next;
-    free(temp);
-    return data;
-}
+// Function prototypes
+Stack *stack_init();
+void push(Stack *stack, double data);
+double pop(Stack *stack);
+bool is_empty(Stack *stack);
+int is_operator(char c);
+int priority(char op);
+double perform_operation(char op, double operand1, double operand2);
+double calculate(char *expression);
 
-int is_empty(Stack* stack) { return stack->top == NULL; }
-
-Stack* stack_init() {
-    Stack* stack = (Stack*)malloc(sizeof(Stack));
+// Initialize stack
+Stack *stack_init() {
+    Stack *stack = (Stack *)malloc(sizeof(Stack));
     if (stack == NULL) {
         printf("Memory allocation error\n");
         exit(1);
     }
     stack->top = NULL;
-    stack->push = push;
-    stack->pop = pop;
-    stack->is_empty = is_empty;
     return stack;
 }
 
-int is_operator(char ch) {
-    return ch == '+' || ch == '-' || ch == '*' || ch == '/';
+// Push a double onto the stack
+void push(Stack *stack, double data) {
+    Node *node = (Node *)malloc(sizeof(Node));
+    if (node == NULL) {
+        printf("Memory allocation error\n");
+        exit(1);
+    }
+    node->data = data;
+    node->next = stack->top;
+    stack->top = node;
 }
 
+// Pop a double from the stack
+double pop(Stack *stack) {
+    if (stack->top == NULL) {
+        printf("Stack underflow\n");
+        exit(1);
+    }
+    Node *temp = stack->top;
+    double data = temp->data;
+    stack->top = temp->next;
+    free(temp);
+    return data;
+}
+
+// Check if the stack is empty
+bool is_empty(Stack *stack) { return stack->top == NULL; }
+
+// Check if a character is an operator
+int is_operator(char c) { return c == '+' || c == '-' || c == '*' || c == '/'; }
+
+// Get the priority of an operator
 int priority(char op) {
+    if (op == '+' || op == '-') return 1;
+    if (op == '*' || op == '/') return 2;
+    return 0;
+}
+
+// Perform arithmetic operations
+double perform_operation(char op, double operand1, double operand2) {
     switch (op) {
         case '+':
+            return operand1 + operand2;
         case '-':
-            return 1;
+            return operand1 - operand2;
         case '*':
+            return operand1 * operand2;
         case '/':
-            return 2;
-        default:
-            return 0;
-    }
-}
-
-int perform_operation(char operator, int op1, int op2) {
-    switch (operator) {
-        case '+':
-            return op1 + op2;
-        case '-':
-            return op1 - op2;
-        case '*':
-            return op1 * op2;
-        case '/':
-            if (op2 == 0) {
-                printf("Error: Division by zero\n");
-                return -1;
+            if (operand2 == 0) {
+                printf("Division by zero\n");
+                exit(1);
             }
-            return op1 / op2;
+            return operand1 / operand2;
         default:
-            return 0;
+            printf("Invalid operator\n");
+            exit(1);
     }
 }
 
-int evaluate_operation(char* expression) {
-    Stack* stack = stack_init();
-    Stack* operators = stack_init();
+// Calculate expression result
+double calculate(char *expression) {
+    Stack *stack = stack_init();
+    Stack *operators = stack_init();
+
+    bool unary = true;
 
     while (*expression != '\0') {
         if (*expression == ' ') {
-            printf("Invalid expression...\n");
-            break;
+            expression++;
+            continue;
         }
-        if (isdigit(*expression)) {
-            int operand1 = 0;
-            while (*expression != '\0' && isdigit(*expression)) {
-                operand1 = (operand1 * 10) + (*expression - '0');
-                expression++;
-            }
-            expression--;
-            stack->push(stack, operand1);
-        } else if (*expression == '(') {
-            operators->push(operators, '(');
+        if (isdigit(*expression) || (*expression == '-' && unary)) {
+            double operand = strtod(expression, &expression);
+            push(stack, operand);
+            unary = false;
+            continue;
+        }
+        if (*expression == '(') {
+            push(operators, '(');
+            unary = true;  // Reset unary flag after opening parenthesis
         } else if (*expression == ')') {
-            while (!operators->is_empty(operators) &&
-                   operators->top->data != '(') {
-                char op = operators->pop(operators);
-                int operand2 = stack->pop(stack);
-                int operand1 = stack->pop(stack);
-                int result = perform_operation(op, operand1, operand2);
-                stack->push(stack, result);
+            while (!is_empty(operators) && operators->top->data != '(') {
+                char op = (char)pop(operators);
+                double operand2 = pop(stack);
+                double operand1 = pop(stack);
+                double result = perform_operation(op, operand1, operand2);
+                push(stack, result);
             }
-            if (!operators->is_empty(operators) &&
-                operators->top->data == '(') {
-                operators->pop(operators);
+            if (!is_empty(operators) && operators->top->data == '(') {
+                pop(operators);
             } else {
                 printf("Error while operating...\n");
-                break;
+                exit(1);
             }
+            unary = false;  // Reset unary flag after closing parenthesis
         } else if (is_operator(*expression)) {
-            while (!operators->is_empty(operators) &&
-                   priority(operators->top->data) >= priority(*expression)) {
-                char op = operators->pop(operators);
-                int operand2 = stack->pop(stack);
-                int operand1 = stack->pop(stack);
-                int result = perform_operation(op, operand1, operand2);
-                stack->push(stack, result);
+            // If the previous character was an operator or if it's the
+            // beginning of the expression, treat '-' as unary negation
+            if (*expression == '-' &&
+                (is_operator(*(expression - 1)) || *(expression - 1) == '(')) {
+                push(stack, 0);  // Push 0 onto the stack to represent the unary
+                                 // negation
+                unary = true;
+            } else {
+                while (!is_empty(operators) && priority(operators->top->data) >=
+                                                   priority(*expression)) {
+                    char op = (char)pop(operators);
+                    double operand2 = pop(stack);
+                    double operand1 = pop(stack);
+                    double result = perform_operation(op, operand1, operand2);
+                    push(stack, result);
+                }
+                push(operators, *expression);
+                unary = true;  // Reset unary flag after pushing an operator
             }
-            operators->push(operators, *expression);
+        } else {
+            printf("Invalid expression...\n");
+            printf("This symbol is invalid '%c'\n", *expression);
+            exit(1);
         }
         expression++;
     }
 
-    while (!operators->is_empty(operators)) {
-        char op = operators->pop(operators);
-        int operand2 = stack->pop(stack);
-        int operand1 = stack->pop(stack);
-        int result = perform_operation(op, operand1, operand2);
-        stack->push(stack, result);
+    while (!is_empty(operators)) {
+        char op = (char)pop(operators);
+        double operand2 = pop(stack);
+        double operand1 = pop(stack);
+        double result = perform_operation(op, operand1, operand2);
+        push(stack, result);
     }
 
-    int result = stack->top->data;
+    double result = stack->top->data;
+    free(stack);
+    free(operators);
     return result;
 }
 
-void task1() {
+int main() {
     char expression[100];
     printf("Enter arithmetical expression: ");
     fgets(expression, 100, stdin);
-    printf("%s", expression);
-    int result = evaluate_operation(expression);
-    printf("Result: %d\n", result);
-    return;
-}
-
-int get_choice() {
-    int choice = 0;
-
-    while (choice == 0) {
-        printf("Enter the number of task or enter '4' to exit: ");
-        scanf("%d", &choice);
-        scanf("%*c");
-        if (choice == 0 || choice > 4 || choice < 0) {
-            printf("Invalid value\n");
-        }
+    size_t length = strlen(expression);
+    if (expression[length - 1] == '\n') {
+        expression[length - 1] = '\0';
     }
 
-    return choice;
-}
-
-void execute_task(int choice, char* file_name) {
-    switch (choice) {
-        case 1:
-            task1();
-            break;
-        default:
-            printf("Invalid value\n");
-            break;
-    }
-}
-
-int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        printf("File error\n");
-        return 1;
-    }
-
-    while (1) {
-        int choice = get_choice();
-
-        if (choice == 4) {
-            printf("Exiting...\n");
-            exit(4);
-        }
-
-        execute_task(choice, argv[1]);
-    }
-
+    printf("%s\n", expression);
+    double result = calculate(expression);
+    printf("Result: %lf\n", result);
     return 0;
 }
