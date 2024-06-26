@@ -94,8 +94,15 @@
     "task2.h": "c",
     "stdlib.h": "c",
     "task1.h": "c",
-    "func2.h": "c"
+    "func2.h": "c",
+    "__locale": "c",
+    "__tuple": "c",
+    "variant": "c",
+    "compare": "c",
+    "cstddef": "c",
+    "k": "c",
+    "stdio.h": "c"
   },
-  "C_Cpp.errorSquiggles": "enabled",
-  "editor.fontSize": 14
+  "C_Cpp.errorSquiggles": "disabled",
+  "editor.fontSize": 15
 }

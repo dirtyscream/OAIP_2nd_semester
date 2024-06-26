@@ -31,23 +31,20 @@ typedef struct {
 typedef struct {
     int key;
     Student *data;
-} HashTableEntry;
+} Hash_table;
 
-typedef struct SubjectNode {
+typedef struct Subject_node {
     char *subject;
     Student *student;
-    struct SubjectNode *next;
-} SubjectNode;
+    struct Subject_node *next;
+} Subject_node;
 
 typedef struct {
-    SubjectNode *table[MAX_STUDENTS];
+    Subject_node *table[MAX_STUDENTS];
 } SubjectHashTable;
 
-HashTableEntry HashTable[MAX_STUDENTS];
-SubjectHashTable subjectHashTable;
-
 int hash_function(int key) {
-    int hash = key * 37 % MAX_STUDENTS;
+    int hash = key % MAX_STUDENTS;
     return hash;
 }
 
@@ -59,18 +56,19 @@ int hash(const char *str) {
     return hash % 101;
 }
 
-void add_student_to_subject_table(Student *student) {
+void add_student_to_subject_table(Student *student,
+                                  SubjectHashTable *subjectHashTable) {
     for (int i = 0; i < student->num_marks; ++i) {
         int index = hash(student->marks[i].subject);
-        SubjectNode *new_node = (SubjectNode *)malloc(sizeof(SubjectNode));
+        Subject_node *new_node = (Subject_node *)malloc(sizeof(Subject_node));
         new_node->subject = student->marks[i].subject;
         new_node->student = student;
-        new_node->next = subjectHashTable.table[index];
-        subjectHashTable.table[index] = new_node;
+        new_node->next = subjectHashTable->table[index];
+        subjectHashTable->table[index] = new_node;
     }
 }
 
-void add_student(int key, Student *student) {
+void add_student(int key, Student *student, Hash_table *HashTable) {
     int hash_index = hash_function(key);
     while (HashTable[hash_index].data != NULL) {
         hash_index = (hash_index + 1) % MAX_STUDENTS;
@@ -98,7 +96,7 @@ Student *create_student(int id, const char *full_name) {
     return student;
 }
 
-void add_student_from_input() {
+void add_student_from_input(Hash_table *HashTable) {
     int id;
     char full_name[100];
     int marks_count;
@@ -124,7 +122,6 @@ void add_student_from_input() {
         fgets(marks[i].subject, 100, stdin);
         marks[i].subject[strcspn(marks[i].subject, "\n")] = '\0';
     }
-
     printf("Enter number of events: ");
     scanf("%d", &events_count);
     Student *new_student = create_student(id, full_name);
@@ -149,10 +146,11 @@ void add_student_from_input() {
             i--;
         }
     }
-    add_student(new_student->id, new_student);
+
+    add_student(new_student->id, new_student, HashTable);
 }
 
-Student *find_student(int key) {
+Student *find_student(int key, Hash_table *HashTable) {
     int hash_index = hash_function(key);
     while (HashTable[hash_index].data != NULL) {
         if (HashTable[hash_index].key == key) {
@@ -163,24 +161,7 @@ Student *find_student(int key) {
     return NULL;
 }
 
-void remove_student(int key) {
-    int hash_index = hash_function(key);
-    while (HashTable[hash_index].data != NULL) {
-        if (HashTable[hash_index].key == key) {
-            free(HashTable[hash_index].data->full_name);
-            for (int i = 0; i < HashTable[hash_index].data->num_marks; ++i) {
-                free(HashTable[hash_index].data->marks[i].subject);
-            }
-            free(HashTable[hash_index].data->marks);
-            free(HashTable[hash_index].data);
-            HashTable[hash_index].data = NULL;
-            return;
-        }
-        hash_index = (hash_index + 1) % MAX_STUDENTS;
-    }
-}
-
-void restore_students() {
+void restore_students(Hash_table *HashTable) {
     for (int i = 0; i < MAX_STUDENTS; ++i) {
         if (HashTable[i].data != NULL) {
             Student *student = HashTable[i].data;
@@ -201,7 +182,51 @@ void restore_students() {
     }
 }
 
-void remove_underperforming_students() {
+void remove_from_subjectHashTable(Student *student,
+                                  SubjectHashTable *subjectHashTable) {
+    for (int i = 0; i < student->num_marks; ++i) {
+        int subject_index = hash(student->marks[i].subject);
+        Subject_node *current = subjectHashTable->table[subject_index];
+        Subject_node *prev = NULL;
+        while (current != NULL) {
+            if (current->student == student) {
+                if (prev == NULL) {
+                    subjectHashTable->table[subject_index] = current->next;
+                } else {
+                    prev->next = current->next;
+                }
+                free(current->subject);
+                free(current);
+                break;
+            }
+            prev = current;
+            current = current->next;
+        }
+    }
+}
+
+void remove_student(int key, Hash_table *HashTable,
+                    SubjectHashTable *subjectHashTable) {
+    int hash_index = hash_function(key);
+    while (HashTable[hash_index].data != NULL) {
+        if (HashTable[hash_index].key == key) {
+            remove_from_subjectHashTable(HashTable[hash_index].data,
+                                         subjectHashTable);
+            free(HashTable[hash_index].data->full_name);
+            for (int i = 0; i < HashTable[hash_index].data->num_marks; ++i) {
+                free(HashTable[hash_index].data->marks[i].subject);
+            }
+            free(HashTable[hash_index].data->marks);
+            free(HashTable[hash_index].data);
+            HashTable[hash_index].data = NULL;
+            return;
+        }
+        hash_index = (hash_index + 1) % MAX_STUDENTS;
+    }
+}
+
+void remove_underperforming_students(Hash_table *HashTable,
+                                     SubjectHashTable *subjectHashTable) {
     for (int i = 0; i < MAX_STUDENTS; ++i) {
         if (HashTable[i].data != NULL) {
             int sum = 0;
@@ -210,15 +235,16 @@ void remove_underperforming_students() {
             }
             float average = (float)sum / HashTable[i].data->num_marks;
             if (average < 5.0) {
-                remove_student(HashTable[i].key);
+                remove_student(HashTable[i].key, HashTable, subjectHashTable);
             }
         }
     }
 }
 
-void find_students_by_subject(const char *subject) {
+void find_students_by_subject(const char *subject,
+                              SubjectHashTable *subjectHashTable) {
     int index = hash(subject);
-    SubjectNode *node = subjectHashTable.table[index];
+    Subject_node *node = subjectHashTable->table[index];
     while (node) {
         if (strcmp(node->subject, subject) == 0) {
             printf("Student ID: %d, Name: %s\n", node->student->id,
@@ -240,16 +266,22 @@ EventType string_to_event_type(const char *str) {
     }
 }
 
+typedef struct Hash_data {
+    Hash_table *HashTable;
+    SubjectHashTable *subjectHashTable;
+} Hash_data;
+
 int read_students_callback(void *data, int argc, char **argv,
                            char **col_names) {
-    HashTableEntry *hashTable = (HashTableEntry *)data;
+    Hash_data *students_data = (Hash_data *)data;
+    Hash_table *HashTable = students_data->HashTable;
+    SubjectHashTable *subjectHashTable = students_data->subjectHashTable;
     int id = atoi(argv[0]);
     const char *full_name = argv[1];
-
-    Student *student = find_student(id);
+    Student *student = find_student(id, HashTable);
     if (student == NULL) {
         student = create_student(id, full_name);
-        add_student(id, student);
+        add_student(id, student, HashTable);
     }
 
     if (argv[2] != NULL && argv[3] != NULL) {
@@ -275,6 +307,31 @@ int read_students_callback(void *data, int argc, char **argv,
             student->marks[student->num_marks].mark = mark;
             student->marks[student->num_marks].subject = strdup(subject);
             student->num_marks++;
+            int index = hash(subject);
+            Subject_node *node = subjectHashTable->table[index];
+            while (node) {
+                if (strcmp(node->subject, subject) == 0) {
+                    Subject_node *current = node;
+                    while (current) {
+                        if (current->student->id == student->id) {
+                            return 0;
+                        }
+                        current = current->next;
+                    }
+                    Subject_node *new_node = malloc(sizeof(Subject_node));
+                    new_node->subject = strdup(subject);
+                    new_node->student = student;
+                    new_node->next = node;
+                    subjectHashTable->table[index] = new_node;
+                    return 0;
+                }
+                node = node->next;
+            }
+            Subject_node *new_node = malloc(sizeof(Subject_node));
+            new_node->subject = strdup(subject);
+            new_node->student = student;
+            new_node->next = subjectHashTable->table[index];
+            subjectHashTable->table[index] = new_node;
         }
     }
 
@@ -305,7 +362,7 @@ int read_students_callback(void *data, int argc, char **argv,
     return 0;
 }
 
-int read_students(sqlite3 *db) {
+int read_students(sqlite3 *db, Hash_data *data) {
     char *err_msg = NULL;
     const char *sql =
         "SELECT students.id, students.full_name, "
@@ -315,7 +372,7 @@ int read_students(sqlite3 *db) {
         "LEFT JOIN marks ON students.id = marks.student_id "
         "LEFT JOIN events ON students.id = events.student_id;";
 
-    int rc = sqlite3_exec(db, sql, read_students_callback, HashTable, &err_msg);
+    int rc = sqlite3_exec(db, sql, read_students_callback, data, &err_msg);
 
     if (rc != SQLITE_OK) {
         fprintf(stderr, "Failed to select students: %s\n", err_msg);
@@ -326,7 +383,7 @@ int read_students(sqlite3 *db) {
     return SQLITE_OK;
 }
 
-int save_to_db(sqlite3 *db) {
+int save_to_db(sqlite3 *db, Hash_table *HashTable) {
     char *err_msg = NULL;
     char *sql_delete_students = "DELETE FROM students;";
     int rc = sqlite3_exec(db, sql_delete_students, NULL, 0, &err_msg);
@@ -402,7 +459,7 @@ int save_to_db(sqlite3 *db) {
     return SQLITE_OK;
 }
 
-void print_all_students() {
+void print_all_students(Hash_table *HashTable) {
     for (int i = 0; i < MAX_STUDENTS; ++i) {
         if (HashTable[i].data != NULL) {
             Student *student = HashTable[i].data;
@@ -429,10 +486,15 @@ void print_all_students() {
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        fprintf(stderr, "Usage: %s <database_name>\n", argv[0]);
+        printf("Argument error\n");
         return 1;
     }
     char *db_name = argv[1];
+    Hash_table HashTable[MAX_STUDENTS];
+    SubjectHashTable subjectHashTable;
+
+    Hash_data data = {.HashTable = HashTable,
+                      .subjectHashTable = &subjectHashTable};
 
     for (int i = 0; i < MAX_STUDENTS; ++i) {
         HashTable[i].key = -1;
@@ -447,6 +509,7 @@ int main(int argc, char *argv[]) {
         sqlite3_close(db);
         return 1;
     }
+    int id;
 
     do {
         printf("\nMenu:\n");
@@ -457,36 +520,37 @@ int main(int argc, char *argv[]) {
         printf("5. Add a new student\n");
         printf("6. Save changes to database\n");
         printf("7. Read data from database\n");
-        printf("8. Exit\n");
+        printf("8. Delete student by index\n");
+        printf("9. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
 
         switch (choice) {
             case 1:
-                print_all_students();
+                print_all_students(HashTable);
                 break;
             case 2: {
                 char subject[MAX_SUBJECT_LENGTH];
                 printf("Enter subject: ");
                 scanf("%s", subject);
-                find_students_by_subject(subject);
+                find_students_by_subject(subject, &subjectHashTable);
                 break;
             }
             case 3:
-                restore_students();
+                restore_students(HashTable);
                 printf(
                     "Expelled students with average mark > 7 have been "
                     "restored.\n");
                 break;
             case 4:
-                remove_underperforming_students();
+                remove_underperforming_students(HashTable, &subjectHashTable);
                 printf("Students with average mark < 5 have been deleted.\n");
                 break;
             case 5:
-                add_student_from_input();
+                add_student_from_input(HashTable);
                 break;
             case 6:
-                rc = save_to_db(db);
+                rc = save_to_db(db, HashTable);
                 if (rc != SQLITE_OK) {
                     fprintf(stderr, "Failed to save changes to database\n");
                 } else {
@@ -494,7 +558,7 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             case 7:
-                rc = read_students(db);
+                rc = read_students(db, &data);
                 if (rc != SQLITE_OK) {
                     fprintf(stderr, "Failed to read data from database\n");
                 } else {
@@ -502,13 +566,18 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             case 8:
+                printf("Enter student id to delete: ");
+                scanf("%d", &id);
+                remove_student(id, HashTable, &subjectHashTable);
+                break;
+            case 9:
                 printf("Exiting...\n");
                 break;
             default:
                 printf("Invalid choice. Please try again.\n");
                 break;
         }
-    } while (choice != 8);
+    } while (choice != 9);
     for (int i = 0; i < MAX_STUDENTS; ++i) {
         if (HashTable[i].data != NULL) {
             free(HashTable[i].data->full_name);
